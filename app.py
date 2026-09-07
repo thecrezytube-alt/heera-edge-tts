@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="Heera Edge TTS Backend", version="1.0.0")
+app = FastAPI(title="Heera Edge TTS Backend", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -60,11 +60,21 @@ def select_voice(language: str, requested: str | None) -> str:
 
 @app.get("/")
 async def root():
-    return {"ok": True, "service": "heera-edge-tts", "voices": {"hi": "hi-IN-SwaraNeural", "hiMale": "hi-IN-MadhurNeural", "en": "en-US-AriaNeural"}}
+    return {"ok": True, "service": "heera-edge-tts", "version": "1.1.0", "edge_tts": getattr(edge_tts, "__version__", "unknown"), "voices": {"hi": "hi-IN-SwaraNeural", "hiMale": "hi-IN-MadhurNeural", "en": "en-US-AriaNeural"}}
 
 @app.get("/health")
 async def health():
-    return {"ok": True}
+    return {"ok": True, "version": "1.1.0", "edge_tts": getattr(edge_tts, "__version__", "unknown")}
+
+@app.get("/diag")
+async def diag():
+    try:
+        out = Path(tempfile.gettempdir()) / "heera_edge_diag.mp3"
+        communicate = edge_tts.Communicate(text="नमस्ते", voice="hi-IN-SwaraNeural")
+        await communicate.save(str(out))
+        return {"ok": out.exists() and out.stat().st_size > 200, "bytes": out.stat().st_size if out.exists() else 0, "voice": "hi-IN-SwaraNeural", "edge_tts": getattr(edge_tts, "__version__", "unknown")}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e), "hint": "Redeploy with edge-tts==7.2.8 and clear build cache. If Render region is blocked, redeploy on another region/provider."})
 
 @app.post("/tts")
 async def tts(req: TtsRequest):

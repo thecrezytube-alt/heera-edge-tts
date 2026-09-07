@@ -39,3 +39,12 @@ curl -X POST http://localhost:8000/tts \
   -o test.mp3 \
   -d '{"text":"नमस्ते bhai, Edge TTS chal raha hai","languageCode":"hi-IN"}'
 ```
+
+## If you see Edge TTS 403
+Redeploy this updated backend with `edge-tts==7.2.8` and clear Render build cache. Test:
+
+```bash
+curl https://YOUR-RENDER-URL.onrender.com/diag
+```
+
+If `/diag` still returns 403, that Render region/IP is blocked by Microsoft Edge speech. Redeploy on another provider/region; Android app will still fallback to Android TTS.
